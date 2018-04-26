@@ -67,6 +67,7 @@ static NSString *const kURLHostVerifyPrefix             = @"verify";
 @property (nonatomic) BOOL hasInitialRootViewController;
 @property (nonatomic) BOOL areVersionMigrationsComplete;
 @property (nonatomic) BOOL didAppLaunchFail;
+@property (nonatomic) BOOL hasReceivedLocalNotification;
 
 @end
 
@@ -592,6 +593,9 @@ static NSString *const kURLHostVerifyPrefix             = @"verify";
         [self handleActivation];
     }];
 
+    // We want to process up to one local notification per activation, so clear the flag.
+    self.hasReceivedLocalNotification = NO;
+
     DDLogInfo(@"%@ applicationDidBecomeActive completed.", self.logTag);
 }
 
@@ -943,6 +947,13 @@ static NSString *const kURLHostVerifyPrefix             = @"verify";
         return;
     }
 
+    // Don't process more than one local notification per activation.
+    if (self.hasReceivedLocalNotification) {
+        OWSFail(@"%@ %s ignoring redundant local notification.", self.logTag, __PRETTY_FUNCTION__);
+        return;
+    }
+    self.hasReceivedLocalNotification = YES;
+
     DDLogInfo(@"%@ %s %@", self.logTag, __PRETTY_FUNCTION__, notification);
 
     [AppStoreRating preventPromptAtNextTest];
@@ -962,6 +973,13 @@ static NSString *const kURLHostVerifyPrefix             = @"verify";
         OWSFail(@"%@ %s app launch failed", self.logTag, __PRETTY_FUNCTION__);
         return;
     }
+
+    // Don't process more than one local notification per activation.
+    if (self.hasReceivedLocalNotification) {
+        OWSFail(@"%@ %s ignoring redundant local notification.", self.logTag, __PRETTY_FUNCTION__);
+        return;
+    }
+    self.hasReceivedLocalNotification = YES;
 
     // The docs for handleActionWithIdentifier:... state:
     // "You must call [completionHandler] at the end of your method.".
