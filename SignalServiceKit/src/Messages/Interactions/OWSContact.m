@@ -165,6 +165,28 @@ NS_ASSUME_NONNULL_BEGIN
     return NO;
 }
 
+- (nullable NSString *)displayName
+{
+    [self ensureDisplayName];
+
+    return _displayName;
+}
+
+- (void)ensureDisplayName
+{
+    if (_displayName.length < 1) {
+        CNContact *_Nullable systemContact = [OWSContacts systemContactForContact:self];
+        _displayName = [CNContactFormatter stringFromContact:systemContact style:CNContactFormatterStyleFullName];
+    }
+    if (_displayName.length < 1) {
+        // Fall back to using the organization name.
+        _displayName = self.organizationName;
+    }
+    if (_displayName.length < 1) {
+        DDLogError(@"%@ could not derive a valid display name.", self.logTag);
+    }
+}
+
 @end
 
 #pragma mark -
@@ -302,6 +324,8 @@ NS_ASSUME_NONNULL_BEGIN
 
     //    @property (readonly, copy, nullable, NS_NONATOMIC_IOSONLY) NSData *imageData;
     //    @property (readonly, copy, nullable, NS_NONATOMIC_IOSONLY) NSData *thumbnailImageData;
+
+    [contact ensureDisplayName];
 
     if (contact.ows_isValid) {
         return contact;
@@ -656,6 +680,8 @@ NS_ASSUME_NONNULL_BEGIN
     contact.addresses = [addresses copy];
 
     // TODO: Avatar
+
+    [contact ensureDisplayName];
 
     return contact;
 }
